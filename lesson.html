@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson | Digital Society in 3D</title>
+  <link rel="stylesheet" href="css/book.css?v=18">
+</head>
+<body>
+  <a class="skip" href="#text">Skip to the lesson text</a>
+  <header class="topbar">
+    <a href="index.html">&larr; Contents</a>
+    <span class="crumb" id="crumb"></span>
+    <span class="spacer"></span>
+    <span id="topnav"></span>
+  </header>
+
+  <main class="lesson">
+    <section class="stage-col" aria-label="3D model">
+      <div class="tabs" id="tabs" role="group" aria-label="Choose a model"></div>
+      <div class="stage" id="stage">
+        <div class="labels" id="labels" aria-hidden="true"></div>
+        <div class="stage-tools">
+          <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" id="zoom-out" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="reset" aria-label="Reset the view">Reset</button>
+          <button type="button" id="motion" aria-pressed="false">Motion: on</button>
+        </div>
+        <p class="stage-hint" id="hint"></p>
+      </div>
+      <div class="scene-info" id="info" aria-live="polite"></div>
+      <div class="scene-controls" id="controls"></div>
+    </section>
+
+    <article class="text-col" id="text" tabindex="-1"></article>
+  </main>
+
+  <script src="js/book.js?v=18"></script>
+  <script src="js/shell.js?v=18"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Digital Society in 3D</title>
+  <link rel="stylesheet" href="css/book.css?v=18">
+</head>
+<body>
+  <a class="skip" href="#contents">Skip to contents</a>
+  <header class="cover">
+    <div class="cover-inner">
+      <div class="kicker">IB Digital Society</div>
+      <h1 id="book-title">Digital Society in 3D</h1>
+      <p>Each lesson puts a model you can turn, open and experiment with next to a short explanation.
+        Predict what will happen, try it, then explain what you saw and what it means for people and communities.</p>
+    </div>
+  </header>
+  <main class="contents" id="contents"></main>
+
+  <script src="js/book.js?v=18"></script>
+  <script>
+    (function () {
+      var B = window.DSBook, main = document.getElementById('contents');
+      function el(tag, cls, text) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+      }
+      B.chapters.forEach(function (ch) {
+        var sec = el('section', 'chapter');
+        var head = el('div', 'chapter-head');
+        head.appendChild(el('span', 'num', ch.id));
+        head.appendChild(el('h2', '', ch.title));
+        sec.appendChild(head);
+        sec.appendChild(el('p', '', ch.blurb));
+        if (ch.lessons.length) {
+          var ul = el('ul', 'lesson-list');
+          ch.lessons.forEach(function (l) {
+            var li = el('li');
+            var card = el(l.file ? 'a' : 'div', 'lesson-card' + (l.file ? '' : ' planned'));
+            if (l.file) card.href = 'lesson.html?id=' + encodeURIComponent(l.id);
+            card.appendChild(el('div', 'id', l.id.toUpperCase()));
+            card.appendChild(el('h3', '', l.title));
+            card.appendChild(el('p', '', l.summary));
+            var s = l.file ? B.getScore(l.id) : null;
+            if (!l.file) card.appendChild(el('span', 'tag', 'Planned'));
+            else if (s) card.appendChild(el('span', 'tag', 'Self-check: ' + s.correct + ' of ' + s.total));
+            li.appendChild(card);
+            ul.appendChild(li);
+          });
+          sec.appendChild(ul);
+        }
+        main.appendChild(sec);
+      });
+    })();
+  </script>
+</body>
+</html>
