@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3.3B Components of a computer | Classroom</title>
+  <link rel="stylesheet" href="css/book.css?v=18">
+</head>
+<body>
+  <a class="skip" href="#text">Skip to the lesson text</a>
+  <header class="topbar">
+    <span class="crumb" id="crumb"></span>
+    <span class="spacer"></span>
+    <span>Classroom lesson</span>
+  </header>
+
+  <main class="lesson">
+    <section class="stage-col" aria-label="3D model">
+      <div class="tabs" id="tabs" role="group" aria-label="Choose a model"></div>
+      <div class="stage" id="stage">
+        <div class="labels" id="labels" aria-hidden="true"></div>
+        <div class="stage-tools">
+          <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" id="zoom-out" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="reset" aria-label="Reset the view">Reset</button>
+          <button type="button" id="motion" aria-pressed="false">Motion: on</button>
+        </div>
+        <p class="stage-hint" id="hint"></p>
+      </div>
+      <div class="scene-info" id="info" aria-live="polite"></div>
+      <div class="scene-controls" id="controls"></div>
+    </section>
+
+    <article class="text-col" id="text" tabindex="-1"></article>
+  </main>
+
+  <script src="js/book.js?v=18"></script>
+  <script>
+/* Classroom-only copy of the book shell. The fixed lesson has no cross-lesson navigation. Main book assets and content remain shared. */
+(function () {
+  'use strict';
+  var B = window.DSBook;
+  var THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
+  var THREE_LOCAL = 'vendor/three.min.js';
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      // The version tag makes browsers fetch fresh files after an update.
+      s.src = /^https?:/.test(src) ? src : src + '?v=' + B.version;
+      s.onload = resolve;
+      s.onerror = function () { s.remove(); reject(new Error('Could not load ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  var id = '3.3b';
+  var all = B.allLessons();
+  var index = all.findIndex(function (l) { return l.id === id; });
+  var entry = all[index];
+  var text = $('text');
+
+  if (!entry) {
+    text.innerHTML = '<h1>Lesson unavailable</h1><p>Reload this page or ask your teacher for help.</p>';
+    return;
+  }
+
+  loadScript(entry.file).then(function () {
+    var lesson = B.lessons[entry.id];
+    if (!lesson) throw new Error(entry.file + ' did not define lesson ' + entry.id);
+    renderText(lesson);
+    return loadScript(THREE_CDN)
+      .catch(function () { return loadScript(THREE_LOCAL); })
+      .then(function () { return loadScript('js/stage.js'); })
+      .then(function () { return loadScript('js/kit.js'); })
+      .then(function () { startStage(lesson); });
+  }).catch(function (err) {
+    console.error(err);
+    var box = el('div', 'stage-fail', 'The 3D model could not start on this device. The lesson text, the text versions of the models and the questions below still work.');
+    $('stage').appendChild(box);
+  });
+
+  /* ---------- text column ---------- */
+
+  function renderText(lesson) {
+    var ch = entry.chapter;
+    document.title = lesson.title + ' | ' + B.title;
+    $('crumb').textContent = ch.id + ' ' + ch.title + '  ›  ' + lesson.title;
+
+    text.appendChild(el('div', 'kicker', entry.id.toUpperCase() + ' · ' + ch.title));
+    text.appendChild(el('h1', '', lesson.title));
+    if (lesson.question) text.appendChild(el('p', 'question', lesson.question));
+    if (lesson.intro) text.appendChild(el('p', '', lesson.intro));
+
+    if (lesson.targets) {
+      var t = el('div', 'targets', '<h2>By the end you can</h2>');
+      var ul = el('ul');
+      lesson.targets.forEach(function (x) { ul.appendChild(el('li', '', x)); });
+      t.appendChild(ul);
+      text.appendChild(t);
+    }
+
+    // Predict before interacting: no right or wrong here, the model settles it.
+    if (lesson.predict) {
+      var p = el('div', 'predict', '<h2>Predict first</h2>');
+      var fs = el('fieldset');
+      fs.appendChild(el('legend', '', lesson.predict.q));
+      var after = el('p', 'after');
+      after.setAttribute('role', 'status');
+      lesson.predict.options.forEach(function (o) {
+        var label = el('label', 'opt');
+        var input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'predict';
+        input.addEventListener('change', function () { after.textContent = lesson.predict.after; });
+        label.appendChild(input);
+        label.appendChild(el('span', '', o));
+        fs.appendChild(label);
+      });
+      p.appendChild(fs);
+      p.appendChild(after);
+      text.appendChild(p);
+    }
+
+    (lesson.sections || []).forEach(function (s) {
+      text.appendChild(el('h2', '', s.heading));
+      text.appendChild(el('div', '', s.html));
+    });
+
+    // Non-3D equivalents of each model.
+    var alts = lesson.scenes.filter(function (s) { return s.textVersion; });
+    if (alts.length) {
+      text.appendChild(el('h2', '', 'Text versions of the 3D models'));
+      text.appendChild(el('p', '', 'Everything the models show, written out. Use these if the 3D view is not available or not useful to you.'));
+      alts.forEach(function (s) {
+        var d = el('details', 'alt');
+        d.appendChild(el('summary', '', s.title));
+        d.appendChild(el('div', '', s.textVersion));
+        text.appendChild(d);
+      });
+    }
+
+    if (lesson.terms) {
+      text.appendChild(el('h2', '', 'Key terms'));
+      var dl = el('dl', 'terms');
+      lesson.terms.forEach(function (x) {
+        dl.appendChild(el('dt', '', x[0]));
+        dl.appendChild(el('dd', '', x[1]));
+      });
+      text.appendChild(dl);
+    }
+
+    if (lesson.questions) renderQuiz(lesson);
+
+    if (lesson.inquiry) {
+      var q = el('section', 'inquiry');
+      q.appendChild(el('h2', '', 'Inquiry: people and communities'));
+      q.appendChild(el('p', 'prompt', lesson.inquiry.prompt));
+      if (lesson.inquiry.consider) {
+        var ul2 = el('ul');
+        lesson.inquiry.consider.forEach(function (x) { ul2.appendChild(el('li', '', x)); });
+        q.appendChild(ul2);
+      }
+      text.appendChild(q);
+    }
+
+  }
+
+  function renderQuiz(lesson) {
+    text.appendChild(el('h2', '', 'Check yourself'));
+    var results = lesson.questions.map(function () { return null; });
+    var score = el('p', 'score');
+    score.setAttribute('role', 'status');
+
+    lesson.questions.forEach(function (q, qi) {
+      var fs = el('fieldset', 'q');
+      fs.appendChild(el('legend', '', (qi + 1) + '. ' + q.q));
+      var fb = el('p', 'fb');
+      fb.setAttribute('role', 'status');
+      q.options.forEach(function (opt, oi) {
+        // An option is "text" or ["text", "feedback if this wrong answer is chosen"].
+        var label = el('label', 'opt');
+        var input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'q' + qi;
+        input.addEventListener('change', function () {
+          var right = oi === q.answer;
+          fs.querySelectorAll('.opt').forEach(function (o) { o.classList.remove('right', 'wrong'); });
+          label.classList.add(right ? 'right' : 'wrong');
+          fb.className = 'fb ' + (right ? 'good' : 'bad');
+          fb.textContent = right
+            ? 'Correct. ' + q.why
+            : 'Not quite. ' + (Array.isArray(opt) && opt[1] ? opt[1] : 'Look at the model again and have another go.');
+          if (results[qi] === null) results[qi] = right; // first attempt counts
+          var done = results.filter(function (r) { return r !== null; }).length;
+          var correct = results.filter(function (r) { return r === true; }).length;
+          score.textContent = 'First-try score: ' + correct + ' of ' + results.length +
+            (done < results.length ? ' (' + (results.length - done) + ' still to answer)' : '');
+          if (done === results.length) B.setScore(lesson.id, { correct: correct, total: results.length });
+        });
+        label.appendChild(input);
+        label.appendChild(el('span', '', Array.isArray(opt) ? opt[0] : opt));
+        fs.appendChild(label);
+      });
+      fs.appendChild(fb);
+      text.appendChild(fs);
+    });
+    text.appendChild(score);
+  }
+
+  /* ---------- 3D stage ---------- */
+
+  function startStage(lesson) {
+    var stage;
+    try {
+      stage = new B.Stage({ wrap: $('stage'), labels: $('labels'), info: $('info'), controls: $('controls') });
+    } catch (err) {
+      throw new Error('WebGL is not available: ' + err.message);
+    }
+
+    $('zoom-in').addEventListener('click', function () { stage.zoom(0.8); });
+    $('zoom-out').addEventListener('click', function () { stage.zoom(1.25); });
+    $('reset').addEventListener('click', function () { stage.resetView(); });
+
+    var motionBtn = $('motion');
+    function setReduced(on) {
+      stage.reduced = on;
+      motionBtn.textContent = on ? 'Motion: off' : 'Motion: on';
+      motionBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      motionBtn.setAttribute('aria-label', on ? 'Animations are off. Turn animations on' : 'Animations are on. Turn animations off');
+    }
+    setReduced(!!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches));
+    motionBtn.addEventListener('click', function () { setReduced(!stage.reduced); });
+
+    var tabs = $('tabs'), buttons = [];
+    function show(i) {
+      var s = lesson.scenes[i];
+      stage.clear();
+      buttons.forEach(function (b, bi) { b.setAttribute('aria-pressed', bi === i ? 'true' : 'false'); });
+      $('hint').textContent = s.hint || 'Drag to rotate. Pinch or use + and − to zoom. Click a part to select it.';
+      s.build(stage, B.kit);
+      stage.invalidate();
+    }
+    lesson.scenes.forEach(function (s, i) {
+      var b = el('button', '', s.title);
+      b.type = 'button';
+      b.addEventListener('click', function () { show(i); });
+      tabs.appendChild(b);
+      buttons.push(b);
+    });
+    if (lesson.scenes.length < 2) tabs.hidden = true;
+    // lesson.html?id=3.3b&scene=2 opens straight on the second model (used by slide links).
+    var q = new URLSearchParams(location.search);
+    var first = parseInt(q.get('scene'), 10) || 1;
+    show(Math.max(0, Math.min(lesson.scenes.length - 1, first - 1)));
+
+    B.stage = stage; // handy when testing from the console
+  }
+})();
+  </script>
+</body>
+</html>
